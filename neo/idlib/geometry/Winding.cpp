@@ -61,14 +61,15 @@ bool idWinding::ReAllocate( int n, bool keep ) {
 /*
 =============
 idWinding::BaseForPlane
+cup: if a plane is x+y+z+1= 0, normal is (1,1,1).normal, dist is -1.
 =============
 */
 void idWinding::BaseForPlane( const idVec3 &normal, const float dist ) {
 	idVec3 org, vright, vup;
 
-	org = normal * dist;
+	org = normal * dist;// then -1*(1,1,1).normal
 
-	normal.NormalVectors( vup, vright );
+	normal.NormalVectors( vup, vright );// create a orth base
 	vup *= MAX_WORLD_SIZE;
 	vright *= MAX_WORLD_SIZE;
 

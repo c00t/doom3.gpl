@@ -202,6 +202,9 @@ int SelectSplitPlaneNum( node_t *node, bspface_t *list ) {
 	// this prevents epsilon problems from extending an
 	// arbitrary distance across the map
 
+	// cup: bounds[0] is min,bounds[1] is max point
+	// if bounds(6k,6k,6k), halfSize = (3k,3k,3k)
+	// dist = 1024*(3k/1024 + 1.) or dist = 1024*(0/1024 + 1.)
 	halfSize = ( node->bounds[1] - node->bounds[0] ) * 0.5f;
 	for ( int axis = 0; axis < 3; axis++ ) {
 		if ( halfSize[axis] > BLOCK_SIZE ) {
@@ -210,6 +213,9 @@ int SelectSplitPlaneNum( node_t *node, bspface_t *list ) {
 			dist = BLOCK_SIZE * ( floor( node->bounds[0][axis] / BLOCK_SIZE ) + 1.0f );
 		}
 		if ( dist > node->bounds[0][axis] + 1.0f && dist < node->bounds[1][axis] - 1.0f ) {
+			// cup: if inside this big node
+			// plane[0][1][2][3] is ax + by + cz + d = 0
+			// if node is too large, create a plane
 			plane[0] = plane[1] = plane[2] = 0.0f;
 			plane[axis] = 1.0f;
 			plane[3] = -dist;
@@ -302,13 +308,15 @@ void	BuildFaceTree_r( node_t *node, bspface_t *list ) {
 	}
 
 	// partition the list
+	// cup: a plane split the plane set into 2 list
+	// check every sides, 
 	node->planenum = splitPlaneNum;
 	idPlane &plane = dmapGlobals.mapPlanes[ splitPlaneNum ];
 	childLists[0] = NULL;
 	childLists[1] = NULL;
 	for ( split = list ; split ; split = next ) {
 		next = split->next;
-
+		// just free split plane, then a list been splited to 2 separate list
 		if ( split->planenum == node->planenum ) {
 			FreeBspFace( split );
 			continue;
@@ -317,6 +325,9 @@ void	BuildFaceTree_r( node_t *node, bspface_t *list ) {
 		side = split->w->PlaneSide( plane );
 
 		if ( side == SIDE_CROSS ) {
+			// a winding for a plane is just a thick volume around this plane
+			// if cross, split this winding into two windings
+			// bspface -> w, face belong to which winding
 			split->w->Split( plane, CLIP_EPSILON * 2, &frontWinding, &backWinding );
 			if ( frontWinding ) {
 				newFace = AllocBspFace();
@@ -334,9 +345,12 @@ void	BuildFaceTree_r( node_t *node, bspface_t *list ) {
 			}
 			FreeBspFace( split );
 		} else if ( side == SIDE_FRONT ) {
+			// if this side front of our split plane
+			// add to child[0]
 			split->next = childLists[0];
 			childLists[0] = split;
 		} else if ( side == SIDE_BACK ) {
+			// back, then add to child[1]
 			split->next = childLists[1];
 			childLists[1] = split;
 		}
@@ -352,6 +366,7 @@ void	BuildFaceTree_r( node_t *node, bspface_t *list ) {
 
 	// split the bounds if we have a nice axial plane
 	for ( i = 0 ; i < 3 ; i++ ) {
+		// plane[0] plane[1] plane[2] is a normal vector, so just test it with 1.0
 		if ( idMath::Fabs( plane[i] - 1.0 ) < 0.001 ) {
 			node->children[0]->bounds[0][i] = plane.Dist();
 			node->children[1]->bounds[1][i] = plane.Dist();

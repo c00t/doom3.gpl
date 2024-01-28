@@ -70,6 +70,7 @@ static	uBrush_t	*buildBrush;
 /*
 ===========
 FindFloatPlane
+fixedDegeneracies default to NULL
 ===========
 */
 int FindFloatPlane( const idPlane &plane, bool *fixedDegeneracies ) {
